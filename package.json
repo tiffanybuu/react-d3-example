@@ -4,10 +4,14 @@
   "private": true,
   "dependencies": {
     "chroma-js": "^1.3.6",
-    "d3": "^5.0.0",
+    "d3": "^6.7.0",
+    "d3-simple-slider": "^1.10.4",
     "react": "^16.3.1",
     "react-dom": "^16.3.1",
-    "react-scripts": "1.1.4"
+    "react-router": "^5.2.0",
+    "react-router-dom": "^5.2.0",
+    "react-scripts": "1.1.4",
+    "topojson": "^3.0.2"
   },
   "homepage": "http://sxywu.github.io/react-d3-example",
   "scripts": {

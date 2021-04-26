@@ -1,67 +1,83 @@
 import React, { Component } from 'react';
 import './App.css';
-import LineChart from './visualizations/LineChart';
-import BarChart from './visualizations/BarChart';
-import RadialChart from './visualizations/RadialChart';
-import Chart from './visualizations/Chart';
+import Map from './Map.js'
+import Intro from './Intro.js'
+import { Switch, Route, Link} from 'react-router-dom'
+import * as d3 from "d3";
+import * as topojson from "topojson";
+
+  // Define path generator
+  const path = d3.geoPath() // path generator that will convert GeoJSON to SVG paths
+  const parseTime = d3.timeParse('%Y-%m-%d');
 
 class App extends Component {
-  state = {
-    temps: {},
-    city: 'sf', // city whose temperatures to show
-  };
-
-  componentDidMount() {
-    Promise.all([
-      fetch(`${process.env.PUBLIC_URL}/sf.json`),
-      fetch(`${process.env.PUBLIC_URL}/ny.json`),
-      fetch(`${process.env.PUBLIC_URL}/am.json`),
-    ]).then(responses => Promise.all(responses.map(resp => resp.json())))
-    .then(([sf, ny, am]) => {
-      sf.forEach(day => day.date = new Date(day.date));
-      ny.forEach(day => day.date = new Date(day.date));
-      // am.forEach(day => day.date = new Date(day.date));
-
-      this.setState({temps: {sf, ny, am}});
-    });
+  constructor(props) {
+    super(props)
+    this.state = {
+      social_capital_states: {},
+      states_albers:{},
+      covid_cases_states:{}
+    };
   }
 
-  updateCity = (e) => {
-    this.setState({city: e.target.value});
+
+  componentDidMount = () => {
+    let currentC = this;
+
+    d3.csv("social-capital-states.csv").then(function(data) {
+      data.forEach(function (d, i) {
+        // console.log(i)
+        d.State_Level_Index = parseFloat(d.State_Level_Index);
+        d.rank_percentage = i/50.00;
+        // rank out of 50 states plus DC = 51
+        d.rank = i+1;
+      })
+
+      currentC.setState({social_capital_states: data})
+
+      d3.json("states-albers-10m.json").then(function(us) {
+        var feat = topojson.feature(us, us.objects.states).features;
+
+        // https://bl.ocks.org/wboykinm/dbbe50d1023f90d4e241712395c27fb3
+        for (var i = 0; i < data.length; i++) {
+
+          const dataState = data[i].State;
+          const dataValue = parseFloat(data[i].State_Level_Index);
+
+          const dat = feat.find(d => d.properties.name == dataState);
+          dat.properties.social_index = dataValue;
+
+        }
+        currentC.setState({states_albers: us})
+        
+        d3.json("covid_cases_states.json").then(function(cov_data) {
+
+          cov_data.forEach(function(d,i) {
+            d.date = parseTime(d.date);
+            d.states = d.states;
+
+            for (var i = 0; i < d.states.length; i++) {
+              const dataState = d.states[i].state;
+              const dat = feat.find(d => d.properties.name == dataState);
+              d.states[i].centroid = path.centroid(dat)
+
+            }
+          })
+          currentC.setState({covid_cases_states: cov_data})
+
+        });
+    
+      })
+    })
   }
 
   render() {
-    const data = this.state.temps[this.state.city];
-
     return (
       <div className="App">
-        <h1>
-          2017 Temperatures for
-          <select name='city' onChange={this.updateCity}>
-            {
-              [
-                {label: 'San Francisco', value: 'sf'},
-                {label: 'New York', value: 'ny'},
-                  // {label: 'Amsterdam', value: 'am'},
-              ].map(option => {
-                return (<option key={option.value} value={option.value}>{option.label}</option>);
-              })
-            }
-          </select>
-        </h1>
-        <p>
-          *warning: these are <em>not</em> meant to be good examples of data visualizations,<br />
-          but just to show the possibility of using D3 and React*
-        </p>
-        <LineChart data={data} />
-        <BarChart data={data} />
-        <br />
-        <Chart data={data} />
-        <RadialChart data={data} />
-
-        <p>
-          (Weather data from <a href='wunderground.com' target='_new'>wunderground.com</a>)
-        </p>
+          <Switch>
+            <Route exact path='/' component={Intro}/>
+            <Route path='/map' component={Map}/>
+          </Switch>
       </div>
     );
   }
