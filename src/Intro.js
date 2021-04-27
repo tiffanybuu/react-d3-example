@@ -14,7 +14,8 @@ class Intro extends Component {
         this.state = {
           social_capital_states: {},
           states_albers:{},
-          covid_cases_states:{}
+          covid_cases_states:{},
+          county_albers: {}
         };
     }
 
@@ -65,6 +66,12 @@ class Intro extends Component {
     
             });
         
+          })
+
+          // county data 
+          d3.json("states-albers-10m.json").then(function(counties) {
+            currentC.setState({county_albers: counties})
+
           })
         })
       }

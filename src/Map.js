@@ -3,8 +3,8 @@ import * as d3 from "d3";
 import * as topojson from "topojson";
 import { sliderBottom } from 'd3-simple-slider';
 import { easeLinear, select } from "d3";
+import { Switch, Route, Link} from 'react-router-dom'
 
-// const d3 = require("d3@6")
 const padding = {top: 10, left: 100, right: 10, bottom: 80}
 const svgWidth = 975;
 const svgHeight = 680;
@@ -34,8 +34,9 @@ export default function Map(props) {
     const [covid_cases_states] = useState(data.covid_cases_states)
     const [states_albers] = useState(data.states_albers)
     const [social_capital_states] = useState(data.social_capital_states)
+    const [county_albers] = useState(data.county_albers)
     const [index_range] = useState(d3.extent(social_capital_states.map(d => d.State_Level_Index)))
-
+    const [setSelect] = useState('state')
     const color = d3.scaleQuantize().domain(index_range).range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"])
     
     function pauseAnimation(playButton) {
@@ -185,18 +186,24 @@ export default function Map(props) {
             let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
             let cases = state.cases;
             
-            // d3.select(".tooltip")
-            //   .html("<b>"+lastHovered.properties.name+"</b> <br/>"
-            //   +"SCI: "+lastHovered.properties.social_index
-            //   +"<br/> Ranks <b>#"+(52 - parseFloat(data.find(da => da.State == lastHovered.properties.name).rank)) + "</b> out of 50 states and DC"
-            //   +"<br/> Covid Case Rate: "+rate_str
-            //   +"<br/> Covid Cases: "+formatKilo(cases))
+            d3.select(".tooltip")
+              .html("<b>"+lastHovered.properties.name+"</b> <br/>"
+              +"SCI: "+lastHovered.properties.social_index
+              +"<br/> Ranks <b>#"+(52 - parseFloat(social_capital_states.find(da => da.State == lastHovered.properties.name).rank)) + "</b> out of 50 states and DC"
+              +"<br/> Covid Case Rate: "+rate_str
+              +"<br/> Covid Cases: "+formatKilo(cases))
             }}
           }
+
+    function handleSelectChange(event) {
+        const value = event.target.value;
+        // setSelect(value)
+    };
 
     // like componentDidMount, or whenever data passed in change
     useEffect(() => {
         const svg = d3.select(svgContainer.current)
+        const active = d3.select(null);
 
         const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
           .min(parseTime('2020-01-21')).max(parseTime('2021-03-22')).width(900)
@@ -231,6 +238,7 @@ export default function Map(props) {
         })
 
         svg.append("g")
+        .attr('id', 'states')
         .attr('transform', "translate(0,70)")
         .selectAll("path")
         .data(topojson.feature(states_albers, states_albers.objects.states).features)
@@ -270,9 +278,12 @@ export default function Map(props) {
             +"SCI: "+d.properties.social_index
             +"<br/> Ranks <b>#"+(52 - parseFloat(social_capital_states.find(da => da.State == d.properties.name).rank)) + "</b> out of 50 states and DC"
             +"<br/> Covid Case Rate: "+rate_str
-            +"<br/> Covid Cases: "+formatKilo(cases))})
-            .on("mouseout", (mouseEvent, d) => {/* Runs when mouse exits a rect */
-                d3.select(".tooltip").attr("style","opacity:0")});
+            +"<br/> Covid Cases: "+formatKilo(cases))
+        })
+        .on("mouseout", (mouseEvent, d) => {/* Runs when mouse exits a rect */
+            d3.select(".tooltip").attr("style","opacity:0")
+        })
+        // .on('click', clicked(active));
 
         svg.append("path")
             .attr('transform', "translate(0,70)")
@@ -281,7 +292,20 @@ export default function Map(props) {
             .attr("stroke", "white")
             .attr("stroke-linejoin", "round")
             .attr("d", path)
-            
+        
+        // console.log(county_albers)
+        // county map
+        // svg.append("g")
+        // .attr('id', 'counties')
+        // .attr('transform', "translate(0,70)")
+        // .selectAll("path")
+        // .data(topojson.feature(county_albers, county_albers.objects.counties).features)
+        // .join("path")
+        // // .attr("fill",d => color(d.properties.social_index))
+        // .attr("d", path)
+        // // .on('click', reset)
+
+
         const legend = svg.append("g")
         .attr("id", "legend")
         .attr('transform', "translate(-200,80)");
@@ -320,6 +344,10 @@ export default function Map(props) {
     return (
         <div className='map'>
             <h1>Social Capital Index (SCI) vs. Covid Cases</h1>
+            <div >
+                <input type="radio" value="State"  onChange={handleSelectChange}/> State
+                <input type="radio" value="County" onChange={handleSelectChange}/> County
+            </div>
 
             <svg className='map' width={svgWidth} height={svgHeight} ref={svgContainer}> 
             </svg>
