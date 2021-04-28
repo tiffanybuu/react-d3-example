@@ -3,7 +3,15 @@ import * as d3 from "d3";
 import * as topojson from "topojson";
 import { sliderBottom } from 'd3-simple-slider';
 import { easeLinear, select } from "d3";
-import { Switch, Route, Link} from 'react-router-dom'
+import { Switch, Route, Link} from 'react-router-dom';
+import Button from '@material-ui/core/Button';
+import Menu from '@material-ui/core/Menu';
+import MenuItem from '@material-ui/core/MenuItem';
+import Select from '@material-ui/core/Select';
+import InputLabel from '@material-ui/core/InputLabel';
+import FormControl from '@material-ui/core/FormControl';
+
+// install material ui 
 
 const padding = {top: 10, left: 100, right: 10, bottom: 80}
 const svgWidth = 975;
@@ -35,8 +43,11 @@ export default function Map(props) {
     const [states_albers] = useState(data.states_albers)
     const [social_capital_states] = useState(data.social_capital_states)
     const [county_albers] = useState(data.county_albers)
+    const [covid_cases_counties] = useState(data.covid_cases_counties)
+    const [social_capital_counties] = useState(data.social_capital_counties)
+
     const [index_range] = useState(d3.extent(social_capital_states.map(d => d.State_Level_Index)))
-    const [setSelect] = useState('state')
+    const [select, setSelect] = useState('state')
     const color = d3.scaleQuantize().domain(index_range).range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"])
     
     function pauseAnimation(playButton) {
@@ -195,28 +206,31 @@ export default function Map(props) {
             }}
           }
 
-    function handleSelectChange(event) {
+    function handleChange(event) {
         const value = event.target.value;
-        // setSelect(value)
+        setSelect(value)
     };
 
     // like componentDidMount, or whenever data passed in change
     useEffect(() => {
-        const svg = d3.select(svgContainer.current)
-        const active = d3.select(null);
+      const svg = d3.select(svgContainer.current)
+      
+      if (select === 'state') {
+        d3.selectAll('*.g-time-slider').remove();
 
-        const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
+          const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
           .min(parseTime('2020-01-21')).max(parseTime('2021-03-22')).width(900)
           .on("onchange", (val) => {
             svg.selectAll('.spike_map').remove();
             update_spikes(val, svg)
         });
 
-        const time_slider = d3.select(".time-slider")
-          .append('svg')
+        const time_slider = d3.select(".time-slider-svg")
+          // .append('svg')
           .attr('width', 1000)
           .attr('height', 70)
           .append('g')
+          .attr('class', 'g-time-slider')
           .attr('transform', 'translate(30,30)')
         
         time_slider.call(slider);
@@ -236,123 +250,270 @@ export default function Map(props) {
             pauseAnimation(playButton);
           }
         })
-
-        svg.append("g")
-        .attr('id', 'states')
-        .attr('transform', "translate(0,70)")
-        .selectAll("path")
-        .data(topojson.feature(states_albers, states_albers.objects.states).features)
-        .join("path")
-        .attr("fill",d => color(d.properties.social_index))
-        .attr("d", path)
-        .on("mouseover", (mouseEvent, d) => {
-            lastHovered = d;
-            // console.log(slider.value())
-            // Runs when the mouse enters a rect.  d is the corresponding data point.
-            // Show the tooltip and adjust its text to say the temperature.
-            d3.select(".tooltip").text(d).attr("style","opacity:20");
-        })
-        .on("mousemove", (mouseEvent, d) => {
-            lastHovered = d;
-            var sname = d.properties.name
-            var date = slider.value()
-            var covid_date = covid_cases_states.find(d =>
-                d.date.getMonth() == date.getMonth() &&
-                d.date.getDay() == date.getDay() &&
-                d.date.getYear() == date.getYear()
-                )
-            var state = covid_date.states.find(d=>d.state == sname)
-
-            var rate = 0
-            var cases = 0
-            if(state){
-                rate = parseFloat(state.covid_rate)
-                cases = state.cases
-            }
-            let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
             
-            d3.select(".tooltip")
-            .style("left", `${d3.pointer(mouseEvent)[0]}px`)
-            .style("top", `${d3.pointer(mouseEvent)[1]}px`).attr("data-html", "true")
-            .html("<b>"+d.properties.name+"</b> <br/>"
-            +"SCI: "+d.properties.social_index
-            +"<br/> Ranks <b>#"+(52 - parseFloat(social_capital_states.find(da => da.State == d.properties.name).rank)) + "</b> out of 50 states and DC"
-            +"<br/> Covid Case Rate: "+rate_str
-            +"<br/> Covid Cases: "+formatKilo(cases))
-        })
-        .on("mouseout", (mouseEvent, d) => {/* Runs when mouse exits a rect */
-            d3.select(".tooltip").attr("style","opacity:0")
-        })
-        // .on('click', clicked(active));
-
-        svg.append("path")
+            svg.append("g")
+            .attr('id', 'states')
             .attr('transform', "translate(0,70)")
-            .datum(topojson.mesh(states_albers, states_albers.objects.states, (a, b) => a !== b))
-            .attr("fill", "none")
-            .attr("stroke", "white")
-            .attr("stroke-linejoin", "round")
+            .selectAll("path")
+            .data(topojson.feature(states_albers, states_albers.objects.states).features)
+            .join("path")
+            .attr("fill",d => color(d.properties.social_index))
             .attr("d", path)
-        
-        // console.log(county_albers)
-        // county map
-        // svg.append("g")
-        // .attr('id', 'counties')
-        // .attr('transform', "translate(0,70)")
-        // .selectAll("path")
-        // .data(topojson.feature(county_albers, county_albers.objects.counties).features)
-        // .join("path")
-        // // .attr("fill",d => color(d.properties.social_index))
-        // .attr("d", path)
-        // // .on('click', reset)
+            .on("mouseover", (mouseEvent, d) => {
+                lastHovered = d;
+                // console.log(slider.value())
+                // Runs when the mouse enters a rect.  d is the corresponding data point.
+                // Show the tooltip and adjust its text to say the temperature.
+                d3.select(".tooltip").text(d).attr("style","opacity:20");
+            })
+            .on("mousemove", (mouseEvent, d) => {
+                lastHovered = d;
+                var sname = d.properties.name
+                var date = slider.value()
+                var covid_date = covid_cases_states.find(d =>
+                    d.date.getMonth() == date.getMonth() &&
+                    d.date.getDay() == date.getDay() &&
+                    d.date.getYear() == date.getYear()
+                    )
+                var state = covid_date.states.find(d=>d.state == sname)
+    
+                var rate = 0
+                var cases = 0
+                if(state){
+                    rate = parseFloat(state.covid_rate)
+                    cases = state.cases
+                }
+                let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
+                
+                d3.select(".tooltip")
+                .style("left", `${d3.pointer(mouseEvent)[0]}px`)
+                .style("top", `${d3.pointer(mouseEvent)[1]}px`).attr("data-html", "true")
+                .html("<b>"+d.properties.name+"</b> <br/>"
+                +"SCI: "+d.properties.social_index
+                +"<br/> Ranks <b>#"+(52 - parseFloat(social_capital_states.find(da => da.State == d.properties.name).rank)) + "</b> out of 50 states and DC"
+                +"<br/> Covid Case Rate: "+rate_str
+                +"<br/> Covid Cases: "+formatKilo(cases))
+            })
+            .on("mouseout", (mouseEvent, d) => {/* Runs when mouse exits a rect */
+                d3.select(".tooltip").attr("style","opacity:0")
+            })
+            // .on('click', clicked(active));
+    
+            svg.append("path")
+                .attr('transform', "translate(0,70)")
+                .datum(topojson.mesh(states_albers, states_albers.objects.states, (a, b) => a !== b))
+                .attr("fill", "none")
+                .attr("stroke", "white")
+                .attr("stroke-linejoin", "round")
+                .attr("d", path)
+    
+            const legend = svg.append("g")
+            .attr("id", "legend")
+            .attr('transform', "translate(-200,80)");
+    
+            const legenditem = legend.selectAll(".legenditem")
+            .data(d3.range(5))
+            .enter()
+            .append("g")
+            .attr("class", "legenditem")
+            .attr("transform", function(d, i) { return "translate(" + i * 31 + ",0)"; });
+    
+            legenditem.append("rect")
+            .attr("x", width - 240)
+            .attr("y", -7)
+            .attr("width", 30)
+            .attr("height", 8)
+            .attr("class", "rect")
+            .style("fill", function(d, i) { return legend_color[i]; });
+    
+            legend.append("text")
+            .attr("x", width - 243)
+            .attr("y", 0)
+            .style("text-anchor", "end")
+            .text("Lowest SCI (-2.15)")
+            .attr('fill', 'black');
+    
+            legend.append("text")
+            .attr("x", width+8)
+            .attr("y", 0)
+            .style("text-anchor", "end")
+            .text("Highest SCI (2.08)")
+            .attr('fill', 'black')
+        } else if (select === 'county') {
+            const svg = d3.select(svgContainer.current)
+            // d3.selectAll("*.time-slider-state").remove(); 
+            svg.selectAll("*").remove(); 
+            d3.selectAll('*.g-time-slider').remove();
 
 
-        const legend = svg.append("g")
-        .attr("id", "legend")
-        .attr('transform', "translate(-200,80)");
 
-        const legenditem = legend.selectAll(".legenditem")
-        .data(d3.range(5))
-        .enter()
-        .append("g")
-        .attr("class", "legenditem")
-        .attr("transform", function(d, i) { return "translate(" + i * 31 + ",0)"; });
+            // black counties don't have enough data, add this information to info page
+            svg.append("g")
+            .attr('id', 'county')
+            .attr('transform', "translate(0,70)")
+            .selectAll("path")
+            .data(topojson.feature(county_albers, county_albers.objects.counties).features)
+            .join("path")
+            .attr("fill",d => color(d.properties.social_index))
+            .attr("d", path)
 
-        legenditem.append("rect")
-        .attr("x", width - 240)
-        .attr("y", -7)
-        .attr("width", 30)
-        .attr("height", 8)
-        .attr("class", "rect")
-        .style("fill", function(d, i) { return legend_color[i]; });
+            const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
+              .min(parseTime('2020-01-21')).max(parseTime('2021-03-22')).width(900)
+              .on("onchange", (val) => {
+                svg.selectAll('.spike_map').remove();
+                update_spikes(val, svg)
+            });
+    
+            const time_slider = d3.select(".time-slider-svg")
+              .attr('width', 1000)
+              .attr('height', 70)
+              .append('g')
+              .attr('class', 'g-time-slider')
+              .attr('transform', 'translate(30,30)')
+            
+            time_slider.call(slider);
+    
+            const playButton = d3.select(".play-button");
+    
+    
+            playButton.on("click", function() {
+              if (d3.select(this).text() == "▶️ Play") {
+                //change text and styling to indicate that the user can pause if desired
+                d3.select(this).text("⏸Pause");
+                d3.select(this).style("background-color", "#FF6961");
+    
+                //begin animation
+                timerID = setInterval(animate(slider, playButton), 50);
+              } else {
+                pauseAnimation(playButton);
+              }
+            })
+    
+            svg.append("g")
+            .attr('id', 'counties')
+            .attr('transform', "translate(0,70)")
+            .selectAll("path")
+            .data(topojson.feature(county_albers, county_albers.objects.counties).features)
+            .join("path")
+            .attr("fill",d => color(d.properties.social_index))
+            .attr("d", path)
+            .on("mouseover", (mouseEvent, d) => {
+                lastHovered = d;
+                // console.log(slider.value())
+                // Runs when the mouse enters a rect.  d is the corresponding data point.
+                // Show the tooltip and adjust its text to say the temperature.
+                d3.select(".tooltip").text(d).attr("style","opacity:20");
+            })
+            .on("mousemove", (mouseEvent, d) => {
+                lastHovered = d;
+                var sname = d.properties.name
+                var id = d.id 
+                var date = slider.value()
+                var covid_date = covid_cases_counties.find(d =>
+                    d.date.getMonth() == date.getMonth() &&
+                    d.date.getDay() == date.getDay() &&
+                    d.date.getYear() == date.getYear()
+                    )
+                console.log(date)
+                var county = covid_date.counties.find(d=>d.fips == id)
+    
+                var rate = 0
+                var cases = 0
+                if(county){
+                    rate = parseFloat(county.covid_rate)
+                    cases = county.cases
+                }
+                let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
+                
+                d3.select(".tooltip")
+                .style("left", `${d3.pointer(mouseEvent)[0]}px`)
+                .style("top", `${d3.pointer(mouseEvent)[1]}px`).attr("data-html", "true")
+                .html("<b>"+d.properties.name+"</b> <br/>"
+                +"SCI: "+d.properties.social_index
+                +"<br/> Ranks <b>#"+(2992 - parseFloat(social_capital_counties.find(da => da.FIPS_Code == d.id).rank)) + "</b> out of 2992 counties with data"
+                +"<br/> Covid Case Rate: "+rate_str
+                +"<br/> Covid Cases: "+formatKilo(cases))
+            })
+            .on("mouseout", (mouseEvent, d) => {/* Runs when mouse exits a rect */
+                d3.select(".tooltip").attr("style","opacity:0")
+            })
+    
+            svg.append("path")
+                .attr('transform', "translate(0,70)")
+                .datum(topojson.mesh(county_albers, county_albers.objects.counties, (a, b) => a !== b))
+                .attr("fill", "none")
+                .attr("stroke", "white")
+                .attr("stroke-linejoin", "round")
+                .attr("d", path)
+            
+    
+    
+            const legend = svg.append("g")
+            .attr("id", "legend")
+            .attr('transform', "translate(-200,80)");
+    
+            const legenditem = legend.selectAll(".legenditem")
+            .data(d3.range(5))
+            .enter()
+            .append("g")
+            .attr("class", "legenditem")
+            .attr("transform", function(d, i) { return "translate(" + i * 31 + ",0)"; });
+    
+            legenditem.append("rect")
+            .attr("x", width - 240)
+            .attr("y", -7)
+            .attr("width", 30)
+            .attr("height", 8)
+            .attr("class", "rect")
+            .style("fill", function(d, i) { return legend_color[i]; });
+    
+            legend.append("text")
+            .attr("x", width - 243)
+            .attr("y", 0)
+            .style("text-anchor", "end")
+            .text("Lowest SCI (-2.15)")
+            .attr('fill', 'black');
+    
+            legend.append("text")
+            .attr("x", width+8)
+            .attr("y", 0)
+            .style("text-anchor", "end")
+            .text("Highest SCI (2.08)")
+            .attr('fill', 'black')
+        }
 
-        legend.append("text")
-        .attr("x", width - 243)
-        .attr("y", 0)
-        .style("text-anchor", "end")
-        .text("Lowest SCI (-2.15)")
-        .attr('fill', 'black');
 
-        legend.append("text")
-        .attr("x", width+8)
-        .attr("y", 0)
-        .style("text-anchor", "end")
-        .text("Highest SCI (2.08)")
-        .attr('fill', 'black')
-
-    }, []);
+    }, [select]);
     
     return (
         <div className='map'>
             <h1>Social Capital Index (SCI) vs. Covid Cases</h1>
-            <div >
-                <input type="radio" value="State"  onChange={handleSelectChange}/> State
-                <input type="radio" value="County" onChange={handleSelectChange}/> County
+            <div>
+                <FormControl>
+                    <Select
+                        native
+                        label="typeOfMap"
+                        onChange = {handleChange}
+                        inputProps={{
+                            name: 'typeOfMap',
+                            id: 'outlined-age-native-simple',
+                        }}
+                        >
+                        <option value='state'>State-Level</option>
+                        <option value='county'>County-Level</option>
+                    </Select>
+                </FormControl>
             </div>
 
             <svg className='map' width={svgWidth} height={svgHeight} ref={svgContainer}> 
             </svg>
             <div className="tooltip">My tooltip!</div>
-            <div className="time-slider"></div>
+            <div className="time-slider" id="time-slider">
+              <svg className='time-slider-svg'></svg>
+            </div>
+
+            {/* <div className="time-slider-state" id="time-slider-state"></div>
+            <div className="time-slider-county" id="time-slider-county"></div> */}
             <button className="play-button">▶️ Play</button>
 
         </div>

@@ -106,3 +106,11 @@ path:hover {
   margin-top: 20px; 
 }
 
+.MuiSelect-select.MuiSelect-select {
+  padding-right: 50px !important;
+  padding-top: 20px; 
+}
+
+.MuiInputBase-input {
+  /* padding: 0px 0 0px !important;  */
+}

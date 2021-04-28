@@ -15,7 +15,9 @@ class Intro extends Component {
           social_capital_states: {},
           states_albers:{},
           covid_cases_states:{},
-          county_albers: {}
+          social_capital_counties: {},
+          county_albers: {},
+          covid_cases_counties: {},
         };
     }
 
@@ -68,12 +70,54 @@ class Intro extends Component {
         
           })
 
-          // county data 
-          d3.json("states-albers-10m.json").then(function(counties) {
-            currentC.setState({county_albers: counties})
-
-          })
         })
+
+        d3.csv("social-capital-counties.csv").then(function(data) {
+            data.forEach(function (d, i) {
+                d.County_Level_Index = parseFloat(d.County_Level_Index);
+                d.rank_percentage = i/2992.00;
+                // rank out of 2992 counties with data 
+                d.rank = i+1;
+            })
+              
+            currentC.setState({social_capital_counties: data})
+
+            d3.json("counties-albers-10m.json").then(function(counties) {
+                var feat = topojson.feature(counties, counties.objects.counties).features
+                for (var i = 0; i < data.length; i++) {
+
+                    const dataFips = data[i].FIPS_Code;
+                    const dataValue = parseFloat(data[i].County_Level_Index);
+  
+                    const dat = feat.find(d => d.id == dataFips);
+                    dat.properties.social_index = dataValue;
+          
+                }
+                currentC.setState({county_albers: counties})
+    
+                d3.json("covid_cases_counties.json").then(function(cov_data) {
+        
+                    cov_data.forEach(function(d,i) {
+
+                      d.date = parseTime(d.date);
+                      d.counties = d.counties;
+          
+                      for (var i = 0; i < d.counties.length; i++) {
+                        const dataCounty = d.counties[i].county;
+
+                        const dataFips = d.counties[i].fips;
+                        const dat = feat.find(d => d.id == dataFips);
+                        d.counties[i].centroid = path.centroid(dat)
+                      }
+                    })
+                    currentC.setState({covid_cases_counties: cov_data})
+
+                  });
+    
+              })
+        })
+
+                  
       }
 
     render() {
