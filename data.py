@@ -8,7 +8,7 @@ from dateutil.parser import parse
 from collections import defaultdict, OrderedDict
 import pandas as pd
 from sklearn import preprocessing
-
+import numpy as np 
 
 
 # parse through covid cases to make front-end retrieving easier
@@ -18,7 +18,7 @@ url = 'https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-countie
 df = pd.read_csv(url)
 
 
-df_test = df.head(1000)
+df_test = df.head(5000)
 
 covid_rates_by_date = {}
 for index, row in df.iterrows():
@@ -28,13 +28,24 @@ for index, row in df.iterrows():
     cases = row['cases']
     fips = row['fips']
 
+    # https://github.com/nytimes/covid-19-data#geographic-exceptions
     if county == 'New York City':
         fips = 36061
+    elif county == 'Kansas City':
+        # Cass, Clay, Jackson, Platte combined into Kansas City
+        # Cass fips code  
+        fips = 29037
+    elif county == 'Joplin':
+        fips = 29145
+
+
+    # if fips == '':
+    #     print(fips, county, state)
 
     pop_row = df_pop.loc[df_pop['State'] == state]
     pop_state = 0.0
     covid_rate = 0.0
-    if not (county == 'Unknown'):
+    if not (county == 'Unknown') and not (np.isnan(fips)):
         if not (pop_row.empty) and state != "Puerto Rico":
             pop_state = float(pop_row['Pop'])
             covid_rate = (cases / pop_state)

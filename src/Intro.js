@@ -103,13 +103,12 @@ class Intro extends Component {
                       d.counties = d.counties;
           
                       for (var i = 0; i < d.counties.length; i++) {
-                        const dataCounty = d.counties[i].county;
-
                         const dataFips = d.counties[i].fips;
                         const dat = feat.find(d => d.id == dataFips);
                         d.counties[i].centroid = path.centroid(dat)
                       }
                     })
+                    console.log(cov_data)
                     currentC.setState({covid_cases_counties: cov_data})
 
                   });
@@ -121,6 +120,7 @@ class Intro extends Component {
       }
 
     render() {
+      // console.log(this.state)
         return (
             <div className="Intro">
                 <h1>Social Capital Index (SCI) and Covid Maps</h1>
@@ -136,6 +136,7 @@ class Intro extends Component {
                 <Link to= {{
                     pathname: "/map",
                     state: this.state,
+                    cov_counties: this.state.covid_cases_counties,
                     }}>
                     <button>Click Here to View Maps</button>
                 </Link>   

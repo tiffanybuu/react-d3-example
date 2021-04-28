@@ -9,6 +9,7 @@
 # production
 /build
 
+/public/covid_cases_counties.json 
 # misc
 .DS_Store
 .env.local

@@ -47,9 +47,12 @@ export default function Map(props) {
     const [social_capital_counties] = useState(data.social_capital_counties)
 
     const [index_range] = useState(d3.extent(social_capital_states.map(d => d.State_Level_Index)))
+    const [index_range_counties] = useState(d3.extent(social_capital_counties.map(d => d.County_Level_Index)))
     const [select, setSelect] = useState('state')
     const color = d3.scaleQuantize().domain(index_range).range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"])
+    const color_county = d3.scaleQuantize().domain(index_range_counties).range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"])
     
+    // console.log(covid_cases_counties)
     function pauseAnimation(playButton) {
         clearInterval(timerID);
         playButton.text("▶️ Play");
@@ -67,144 +70,7 @@ export default function Map(props) {
           slider.value(date);
         }
     }
-        // covid cases spike map
-    function update_spikes(date, svg) {
-        const covid_data = (covid_cases_states.find(d =>
-            d.date.getMonth() == date.getMonth() &&
-            d.date.getDay() == date.getDay() &&
-            d.date.getYear() == date.getYear()
-            ))
 
-        // calculating centroids of each state for spike location and adding
-        // to covid data
-        const states = covid_data.states;
-        // [0, d3.max(covid_data.states, d => d.covid_rate)]
-        const length = d3.scaleLinear().domain(d3.extent(covid_data.states, d => d.covid_rate))
-            .range([0,150]);
-
-        function spike(length, width=7) {
-            return `M${-width / 2},0L0,${-length}L${width / 2},0`
-        }
-
-        //legend detailing what the sizes of the spikes mean
-        //remove old legend
-        svg.select("g.spike_legend").remove();
-
-        //calculate min and max covid rate
-        const extent = d3.extent(covid_data.states, d => d.covid_rate);
-        const min_rate = extent[0];
-        const max_rate = extent[1];
-
-        const spike_legend = svg.append("g")
-            .attr("transform", "translate(850,200)")
-            .attr("class", "spike_legend");
-
-        if (min_rate == max_rate) {
-            spike_legend.append('path')
-            .attr('transform', "translate(" + 50 + ",300)")
-            .attr('fill', 'red')
-            .attr('fill-opacity', 0.6)
-            .attr('stroke', 'red')
-            .attr('d', spike(75));
-
-            var covid_rate_num = parseFloat(min_rate)
-            // console.log(covid_rate_num);
-            let covid_rate_str = covid_rate_num < 0.0001 ? "~0%" : formatPercent(covid_rate_num);
-
-            spike_legend.append("text")
-            .attr("x", 50 + 13)
-            .attr("y", 315)
-            .style("text-anchor", "end")
-            .text(covid_rate_str)
-            .attr('fill', 'black');
-        } else {
-            for (var i = 1; i <= 3; i++) {
-            spike_legend.append('path')
-            .attr('transform', "translate(" + (i - 1) * 50 + ",300)")
-            .attr('fill', 'red')
-            .attr('fill-opacity', 0.6)
-            .attr('stroke', 'red')
-            .attr('d', spike(50 * i));
-
-            var covid_rate_num = parseFloat((min_rate + (max_rate - min_rate) * (i / 3.0)))
-            let covid_rate_str = covid_rate_num < 0.0001 ? "~0%" : formatPercent(covid_rate_num);
-
-            spike_legend.append("text")
-            .attr("x", (i - 1) * 50 + 13)
-            .attr("y", 315)
-            .style("text-anchor", "end")
-            .text(covid_rate_str)
-            .attr('fill', 'black');
-            }
-        }
-
-            spike_legend.append("text")
-            .attr("x", 125)
-            .attr("y", 335)
-            .style("text-anchor", "end")
-            .text("Cumulative Cases / Population")
-            .attr('fill', 'black');
-
-
-            const spikes_g = svg.append('g')
-            .attr('transform', "translate(0,70)")
-            .attr('class', 'spike_map')
-
-            spikes_g.selectAll('path')
-            .attr('transform', "translate(0,70)")
-            .data(covid_data.states)
-            .join(
-              enter => {
-                const ll = enter.append('path')
-                .attr('transform', "translate(0,70)")
-
-                .attr('fill', 'red')
-                .attr('fill-opacity', 0.6)
-                .attr('stroke', 'red')
-                .attr('d', (d) => {
-                  if (d.centroid) {
-                    return spike(length(d.covid_rate));
-                  }
-                })
-                .attr('transform', (d) => {
-                  if (!isNaN(d.centroid[0]) && !isNaN(d.centroid[1])) {
-                    return `translate(${d.centroid})`
-                  }
-                  return `translate(0,-80)`
-                })
-              },
-              update => update,
-              exit => {
-                exit.transition().duration(1000).ease(easeLinear)
-                .attr('d', (d) => {
-                  if (d.centroid) {
-                    return spike(length(d.covid_rate))
-                  }
-                })
-                .remove()
-              }
-            )
-            if (lastHovered != undefined) {
-            let covid_date = covid_cases_states.find(d =>
-              d.date.getMonth() == date.getMonth() &&
-              d.date.getDay() == date.getDay() &&
-              d.date.getYear() == date.getYear()
-              );
-            let sname = lastHovered.properties.name
-            let state = covid_date.states.find(d=>d.state == sname)
-            if (state != undefined) {
-            let rate = parseFloat(state.covid_rate);
-            let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
-            let cases = state.cases;
-            
-            d3.select(".tooltip")
-              .html("<b>"+lastHovered.properties.name+"</b> <br/>"
-              +"SCI: "+lastHovered.properties.social_index
-              +"<br/> Ranks <b>#"+(52 - parseFloat(social_capital_states.find(da => da.State == lastHovered.properties.name).rank)) + "</b> out of 50 states and DC"
-              +"<br/> Covid Case Rate: "+rate_str
-              +"<br/> Covid Cases: "+formatKilo(cases))
-            }}
-          }
 
     function handleChange(event) {
         const value = event.target.value;
@@ -214,15 +80,18 @@ export default function Map(props) {
     // like componentDidMount, or whenever data passed in change
     useEffect(() => {
       const svg = d3.select(svgContainer.current)
-      
+
+      let spikes_g; 
       if (select === 'state') {
         d3.selectAll('*.g-time-slider').remove();
+
+
 
           const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
           .min(parseTime('2020-01-21')).max(parseTime('2021-03-22')).width(900)
           .on("onchange", (val) => {
             svg.selectAll('.spike_map').remove();
-            update_spikes(val, svg)
+            update_spikes(val)
         });
 
         const time_slider = d3.select(".time-slider-svg")
@@ -250,8 +119,160 @@ export default function Map(props) {
             pauseAnimation(playButton);
           }
         })
+
+                // covid cases spike map
+    function update_spikes(date) {
+      const covid_data = (covid_cases_states.find(d =>
+          d.date.getMonth() == date.getMonth() &&
+          d.date.getDay() == date.getDay() &&
+          d.date.getYear() == date.getYear()
+          ))
+
+      // calculating centroids of each state for spike location and adding
+      // to covid data
+      const states = covid_data.states;
+      // [0, d3.max(covid_data.states, d => d.covid_rate)]
+      const length = d3.scaleLinear().domain(d3.extent(covid_data.states, d => d.covid_rate))
+          .range([0,150]);
+
+      function spike(length, width=7) {
+          return `M${-width / 2},0L0,${-length}L${width / 2},0`
+      }
+
+      //legend detailing what the sizes of the spikes mean
+      //remove old legend
+      svg.select("g.spike_legend").remove();
+
+      //calculate min and max covid rate
+      const extent = d3.extent(covid_data.states, d => d.covid_rate);
+      const min_rate = extent[0];
+      const max_rate = extent[1];
+
+      const spike_legend = svg.append("g")
+          .attr("transform", "translate(850,200)")
+          .attr("class", "spike_legend");
+
+      if (min_rate == max_rate) {
+          spike_legend.append('path')
+          .attr('transform', "translate(" + 50 + ",300)")
+          .attr('fill', 'red')
+          .attr('fill-opacity', 0.6)
+          .attr('stroke', 'red')
+          .attr('d', spike(75));
+
+          var covid_rate_num = parseFloat(min_rate)
+          // console.log(covid_rate_num);
+          let covid_rate_str = covid_rate_num < 0.0001 ? "~0%" : formatPercent(covid_rate_num);
+
+          spike_legend.append("text")
+          .attr("x", 50 + 13)
+          .attr("y", 315)
+          .style("text-anchor", "end")
+          .text(covid_rate_str)
+          .attr('fill', 'black');
+      } else {
+          for (var i = 1; i <= 3; i++) {
+          spike_legend.append('path')
+          .attr('transform', "translate(" + (i - 1) * 50 + ",300)")
+          .attr('fill', 'red')
+          .attr('fill-opacity', 0.6)
+          .attr('stroke', 'red')
+          .attr('d', spike(50 * i));
+
+          var covid_rate_num = parseFloat((min_rate + (max_rate - min_rate) * (i / 3.0)))
+          let covid_rate_str = covid_rate_num < 0.0001 ? "~0%" : formatPercent(covid_rate_num);
+
+          spike_legend.append("text")
+          .attr("x", (i - 1) * 50 + 13)
+          .attr("y", 315)
+          .style("text-anchor", "end")
+          .text(covid_rate_str)
+          .attr('fill', 'black');
+          }
+      }
+
+          spike_legend.append("text")
+          .attr("x", 125)
+          .attr("y", 335)
+          .style("text-anchor", "end")
+          .text("Cumulative Cases / Population")
+          .attr('fill', 'black');
+
+
+          spikes_g = svg.append('g')
+          .attr('transform', "translate(0,70)")
+          .attr('class', 'spike_map')
+
+          spikes_g.selectAll('path')
+          .attr('transform', "translate(0,70)")
+          .data(covid_data.states)
+          .join(
+            enter => {
+              const ll = enter.append('path')
+              .attr('transform', "translate(0,70)")
+
+              .attr('fill', 'red')
+              .attr('fill-opacity', 0.6)
+              .attr('stroke', 'red')
+              .attr('d', (d) => {
+                if (d.centroid) {
+                  return spike(length(d.covid_rate));
+                }
+              })
+              .attr('transform', (d) => {
+                if (!isNaN(d.centroid[0]) && !isNaN(d.centroid[1])) {
+                  return `translate(${d.centroid})`
+                }
+                return `translate(0,-80)`
+              })
+            },
+            update => update,
+            exit => {
+              exit.transition().duration(1000).ease(easeLinear)
+              .attr('d', (d) => {
+                if (d.centroid) {
+                  return spike(length(d.covid_rate))
+                }
+              })
+              .remove()
+            }
+          )
+          if (lastHovered != undefined) {
+          let covid_date = covid_cases_states.find(d =>
+            d.date.getMonth() == date.getMonth() &&
+            d.date.getDay() == date.getDay() &&
+            d.date.getYear() == date.getYear()
+            );
+          let sname = lastHovered.properties.name
+          let state = covid_date.states.find(d=>d.state == sname)
+          if (state != undefined) {
+          let rate = parseFloat(state.covid_rate);
+          let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
+          let cases = state.cases;
+          
+          d3.select(".tooltip")
+            .html("<b>"+lastHovered.properties.name+"</b> <br/>"
+            +"SCI: "+lastHovered.properties.social_index
+            +"<br/> Ranks <b>#"+(52 - parseFloat(social_capital_states.find(da => da.State == lastHovered.properties.name).rank)) + "</b> out of 50 states and DC"
+            +"<br/> Covid Case Rate: "+rate_str
+            +"<br/> Covid Cases: "+formatKilo(cases))
+          }}
+
+          // const zoom = d3.zoom()
+          //   .scaleExtent([1,8])
+          //   .on('zoom', zoomed)
+          //   svg.call(zoom)
+          //   spikes_g.call(zoom)
+
+          //   function zoomed({transform}) {
+          //     // d3.select('.spike_map').attr('transform', transform)
+          //     g.attr('transform', transform)
+          //     spikes_g.attr('transform', transform)
+
+          //   }
+        }
             
-            svg.append("g")
+            const g = svg.append("g")
             .attr('id', 'states')
             .attr('transform', "translate(0,70)")
             .selectAll("path")
@@ -297,19 +318,20 @@ export default function Map(props) {
             .on("mouseout", (mouseEvent, d) => {/* Runs when mouse exits a rect */
                 d3.select(".tooltip").attr("style","opacity:0")
             })
-            // .on('click', clicked(active));
     
-            svg.append("path")
+            const g_outline = svg.append("path")
                 .attr('transform', "translate(0,70)")
                 .datum(topojson.mesh(states_albers, states_albers.objects.states, (a, b) => a !== b))
                 .attr("fill", "none")
                 .attr("stroke", "white")
                 .attr("stroke-linejoin", "round")
                 .attr("d", path)
-    
+            
+
+
             const legend = svg.append("g")
             .attr("id", "legend")
-            .attr('transform', "translate(-200,80)");
+            .attr('transform', "translate(-200,20)");
     
             const legenditem = legend.selectAll(".legenditem")
             .data(d3.range(5))
@@ -340,28 +362,40 @@ export default function Map(props) {
             .text("Highest SCI (2.08)")
             .attr('fill', 'black')
         } else if (select === 'county') {
+
             const svg = d3.select(svgContainer.current)
             // d3.selectAll("*.time-slider-state").remove(); 
             svg.selectAll("*").remove(); 
             d3.selectAll('*.g-time-slider').remove();
 
 
+            // ZOOM IN FUNCTION 
+            const zoom = d3.zoom()
+              .scaleExtent([1,8])
+              .on('zoom', zoomed)
+
+            svg.call(zoom)     
+
+
+            function zoomed({transform}) {
+              g.attr('transform', transform)
+            }
 
             // black counties don't have enough data, add this information to info page
-            svg.append("g")
-            .attr('id', 'county')
-            .attr('transform', "translate(0,70)")
-            .selectAll("path")
-            .data(topojson.feature(county_albers, county_albers.objects.counties).features)
-            .join("path")
-            .attr("fill",d => color(d.properties.social_index))
-            .attr("d", path)
+            // svg.append("g")
+            // .attr('id', 'county')
+            // .attr('transform', "translate(0,70)")
+            // .selectAll("path")
+            // .data(topojson.feature(county_albers, county_albers.objects.counties).features)
+            // .join("path")
+            // .attr("fill",d => color(d.properties.social_index))
+            // .attr("d", path)
 
             const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
               .min(parseTime('2020-01-21')).max(parseTime('2021-03-22')).width(900)
               .on("onchange", (val) => {
                 svg.selectAll('.spike_map').remove();
-                update_spikes(val, svg)
+                update_spikes(val)
             });
     
             const time_slider = d3.select(".time-slider-svg")
@@ -388,8 +422,150 @@ export default function Map(props) {
                 pauseAnimation(playButton);
               }
             })
+
+                    // covid cases spike map
+    function update_spikes(date) {
+      const covid_data = (covid_cases_counties.find(d =>
+          d.date.getMonth() == date.getMonth() &&
+          d.date.getDay() == date.getDay() &&
+          d.date.getYear() == date.getYear()
+          ))
+
+      // calculating centroids of each state for spike location and adding
+      // to covid data
+      const states = covid_data.states;
+      // [0, d3.max(covid_data.states, d => d.covid_rate)]
+      const length = d3.scaleLinear().domain(d3.extent(covid_data.counties, d => d.covid_rate))
+          .range([0,150]);
+
+      function spike(length, width=7) {
+          return `M${-width / 2},0L0,${-length}L${width / 2},0`
+      }
+
+      //legend detailing what the sizes of the spikes mean
+      //remove old legend
+      svg.select("g.spike_legend").remove();
+
+      //calculate min and max covid rate
+      const extent = d3.extent(covid_data.counties, d => d.covid_rate);
+      const min_rate = extent[0];
+      const max_rate = extent[1];
+
+      const spike_legend = svg.append("g")
+          .attr("transform", "translate(850,200)")
+          .attr("class", "spike_legend");
+
+      if (min_rate == max_rate) {
+          spike_legend.append('path')
+          .attr('transform', "translate(" + 50 + ",300)")
+          .attr('fill', 'red')
+          .attr('fill-opacity', 0.6)
+          .attr('stroke', 'red')
+          .attr('d', spike(75));
+
+          var covid_rate_num = parseFloat(min_rate)
+          // console.log(covid_rate_num);
+          let covid_rate_str = covid_rate_num < 0.0001 ? "~0%" : formatPercent(covid_rate_num);
+
+          spike_legend.append("text")
+          .attr("x", 50 + 13)
+          .attr("y", 315)
+          .style("text-anchor", "end")
+          .text(covid_rate_str)
+          .attr('fill', 'black');
+      } else {
+          for (var i = 1; i <= 3; i++) {
+          spike_legend.append('path')
+          .attr('transform', "translate(" + (i - 1) * 50 + ",300)")
+          .attr('fill', 'red')
+          .attr('fill-opacity', 0.6)
+          .attr('stroke', 'red')
+          .attr('d', spike(50 * i));
+
+          var covid_rate_num = parseFloat((min_rate + (max_rate - min_rate) * (i / 3.0)))
+          let covid_rate_str = covid_rate_num < 0.0001 ? "~0%" : formatPercent(covid_rate_num);
+
+          spike_legend.append("text")
+          .attr("x", (i - 1) * 50 + 13)
+          .attr("y", 315)
+          .style("text-anchor", "end")
+          .text(covid_rate_str)
+          .attr('fill', 'black');
+          }
+      }
+
+          spike_legend.append("text")
+          .attr("x", 125)
+          .attr("y", 335)
+          .style("text-anchor", "end")
+          .text("Cumulative Cases / Population")
+          .attr('fill', 'black');
+
+
+          const spikes_g = svg.append('g')
+          .attr('transform', "translate(0,70)")
+          .attr('class', 'spike_map')
+
+          spikes_g.selectAll('path')
+          .attr('transform', "translate(0,70)")
+          .data(covid_data.counties)
+          .join(
+            enter => {
+              const ll = enter.append('path')
+              .attr('transform', "translate(0,70)")
+
+              .attr('fill', 'red')
+              .attr('fill-opacity', 0.6)
+              .attr('stroke', 'red')
+              .attr('d', (d) => {
+                if (d.centroid) {
+                  return spike(length(d.covid_rate));
+                }
+              })
+              .attr('transform', (d) => {
+                if (!isNaN(d.centroid[0]) && !isNaN(d.centroid[1])) {
+                  return `translate(${d.centroid})`
+                }
+                return `translate(0,-80)`
+              })
+            },
+            update => update,
+            exit => {
+              exit.transition().duration(1000).ease(easeLinear)
+              .attr('d', (d) => {
+                if (d.centroid) {
+                  return spike(length(d.covid_rate))
+                }
+              })
+              .remove()
+            }
+          )
+          if (lastHovered != undefined) {
+          let covid_date = covid_cases_counties.find(d =>
+            d.date.getMonth() == date.getMonth() &&
+            d.date.getDay() == date.getDay() &&
+            d.date.getYear() == date.getYear()
+            );
+
+          let sname = lastHovered.properties.name
+          let id = lastHovered.id 
+          var county = covid_date.counties.find(d=>d.fips == id)
+          if (county != undefined) {
+          let rate = parseFloat(county.covid_rate);
+          let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
+          let cases = county.cases;
+          
+          d3.select(".tooltip")
+            .html("<b>"+lastHovered.properties.name+"</b> <br/>"
+            +"SCI: "+lastHovered.properties.social_index
+            +"<br/> Ranks <b>#"+(2992 - parseFloat(social_capital_counties.find(da => da.FIPS_Code == lastHovered.id ).rank)) + "</b> out of 2992 counties with data"
+            +"<br/> Covid Case Rate: "+rate_str
+            +"<br/> Covid Cases: "+formatKilo(cases))
+          }
+        }
+        }
     
-            svg.append("g")
+            const g = svg.append("g")
             .attr('id', 'counties')
             .attr('transform', "translate(0,70)")
             .selectAll("path")
@@ -414,7 +590,7 @@ export default function Map(props) {
                     d.date.getDay() == date.getDay() &&
                     d.date.getYear() == date.getYear()
                     )
-                console.log(date)
+
                 var county = covid_date.counties.find(d=>d.fips == id)
     
                 var rate = 0
@@ -438,19 +614,18 @@ export default function Map(props) {
                 d3.select(".tooltip").attr("style","opacity:0")
             })
     
-            svg.append("path")
-                .attr('transform', "translate(0,70)")
-                .datum(topojson.mesh(county_albers, county_albers.objects.counties, (a, b) => a !== b))
-                .attr("fill", "none")
-                .attr("stroke", "white")
-                .attr("stroke-linejoin", "round")
-                .attr("d", path)
-            
-    
-    
+            // const g_outline = svg.append("path")
+            //     .attr('transform', "translate(0,70)")
+            //     .datum(topojson.mesh(county_albers, county_albers.objects.counties, (a, b) => a !== b))
+            //     .attr("fill", "none")
+            //     .attr("stroke", "white")
+            //     .attr("stroke-linejoin", "round")
+            //     .attr("d", path)
+
+
             const legend = svg.append("g")
             .attr("id", "legend")
-            .attr('transform', "translate(-200,80)");
+            .attr('transform', "translate(-200,20)");
     
             const legenditem = legend.selectAll(".legenditem")
             .data(d3.range(5))
@@ -471,14 +646,14 @@ export default function Map(props) {
             .attr("x", width - 243)
             .attr("y", 0)
             .style("text-anchor", "end")
-            .text("Lowest SCI (-2.15)")
+            .text("Lowest SCI (-4.3)")
             .attr('fill', 'black');
     
             legend.append("text")
             .attr("x", width+8)
             .attr("y", 0)
             .style("text-anchor", "end")
-            .text("Highest SCI (2.08)")
+            .text("Highest SCI (2.9)")
             .attr('fill', 'black')
         }
 
