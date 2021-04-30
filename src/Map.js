@@ -83,15 +83,14 @@ export default function Map(props) {
 
       let spikes_g; 
       if (select === 'state') {
+        svg.selectAll("*").remove(); 
         d3.selectAll('*.g-time-slider').remove();
 
-
-
-          const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
-          .min(parseTime('2020-01-21')).max(parseTime('2021-03-22')).width(900)
-          .on("onchange", (val) => {
-            svg.selectAll('.spike_map').remove();
-            update_spikes(val)
+        const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
+        .min(parseTime('2020-01-21')).max(parseTime('2021-03-22')).width(900)
+        .on("onchange", (val) => {
+          svg.selectAll('.spike_map').remove();
+          update_spikes(val)
         });
 
         const time_slider = d3.select(".time-slider-svg")
@@ -383,19 +382,6 @@ export default function Map(props) {
             svg.selectAll("*").remove(); 
             d3.selectAll('*.g-time-slider').remove();
 
-
-            // ZOOM IN FUNCTION 
-            const zoom = d3.zoom()
-              .scaleExtent([1,8])
-              .on('zoom', zoomed)
-
-            svg.call(zoom)     
-
-
-            function zoomed({transform}) {
-              g.attr('transform', transform)
-            }
-
             // black counties don't have enough data, add this information to info page
             // svg.append("g")
             // .attr('id', 'county')
@@ -457,6 +443,8 @@ export default function Map(props) {
 
             // covid cases spike map
             function update_spikes(date) {
+              const current_transform = d3.zoomTransform(svg.node()); 
+
               const covid_data = (covid_cases_counties.find(d =>
                   d.date.getMonth() == date.getMonth() &&
                   d.date.getDay() == date.getDay() &&
@@ -555,9 +543,14 @@ export default function Map(props) {
                       .attr('transform', (d) => {
                         if (!isNaN(d.centroid[0]) && !isNaN(d.centroid[1])) {
                           return `translate(${d.centroid})`
+
+                          // const x = d.centroid[0] + current_transform.x
+                          // const y = d.centroid[1] + current_transform.y
+                          // return "translate(" + x + ',' + y + ")";
                         }
                         return `translate(0,-80)`
                       })
+                      // .attr('scale', current_transform.k)
                     },
                     update => update,
                     exit => {
@@ -570,6 +563,16 @@ export default function Map(props) {
                       .remove()
                     }
                   )
+                  // .attr('transform', transform(d3.zoomIdentity));
+
+
+                  // function transform(t) {
+                  //   console.log('transform')
+                  //   return function(d) {
+                  //     return "translate(" + t.apply(d) + ")";
+                  //   };
+                  // }
+
                   if (lastHovered != undefined) {
                   let covid_date = covid_cases_counties.find(d =>
                     d.date.getMonth() == date.getMonth() &&
@@ -577,7 +580,6 @@ export default function Map(props) {
                     d.date.getYear() == date.getYear()
                     );
 
-                  let sname = lastHovered.properties.name
                   let id = lastHovered.id 
                   var county = covid_date.counties.find(d=>d.fips == id)
                   if (county != undefined) {
@@ -652,6 +654,28 @@ export default function Map(props) {
             //     .attr("stroke-linejoin", "round")
             //     .attr("d", path)
 
+            // ZOOM IN FUNCTION 
+            const zoom = d3.zoom()
+            .scaleExtent([1,8])
+            .on('zoom', zoomed)
+
+            svg.call(zoom)     
+
+
+            function zoomed({transform}) {
+              g.attr('transform', transform)
+              // not sure how to adjust the position of the spikes when zoomed in 
+              // d3.selectAll('.spike_map')
+              //   .attr('transform', "translate(" + transform.x + ',' + transform.y + ")")
+              //   .attr('scale', transform.k)
+            }
+
+            // function transform_t(t) {
+            //   console.log('transform')
+            //   return function(d) {
+            //     return "translate(" + t.apply(d) + ")";
+            //   };
+            // }
 
             const legend = svg.append("g")
             .attr("id", "legend")

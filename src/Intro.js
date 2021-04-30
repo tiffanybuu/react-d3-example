@@ -130,6 +130,7 @@ class Intro extends Component {
                     There has been some research that found that counties/states with higher social capital indices generally have lower rates fo COVID cases (https://www.medrxiv.org/content/10.1101/2020.04.23.20077321v1). 
                     Our project aims to visualize the relationship between Social Capital and Covid Cases across the United States.
                     <br></br>
+                    Note: Counties shown in black are not ranked due to missing data.
                     <br></br>
                     Datasets used: [add]
                 </p>
