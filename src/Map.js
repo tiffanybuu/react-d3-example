@@ -11,7 +11,7 @@ import Select from '@material-ui/core/Select';
 import InputLabel from '@material-ui/core/InputLabel';
 import FormControl from '@material-ui/core/FormControl';
 
-// install material ui 
+// install material ui
 
 const padding = {top: 10, left: 100, right: 10, bottom: 80}
 const svgWidth = 975;
@@ -36,8 +36,8 @@ var timerID = undefined;
 const legend_color = ["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"];
 
 export default function Map(props) {
-    const svgContainer = useRef(null); 
-    const data = props.location.state; 
+    const svgContainer = useRef(null);
+    const data = props.location.state;
 
     const [covid_cases_states] = useState(data.covid_cases_states)
     const [states_albers] = useState(data.states_albers)
@@ -51,7 +51,7 @@ export default function Map(props) {
     const [select, setSelect] = useState('state')
     const color = d3.scaleQuantize().domain(index_range).range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"])
     const color_county = d3.scaleQuantize().domain(index_range_counties).range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"])
-    
+
     // console.log(covid_cases_counties)
     // function pauseAnimation(playButton) {
     //     clearInterval(timerID);
@@ -81,9 +81,9 @@ export default function Map(props) {
     useEffect(() => {
       const svg = d3.select(svgContainer.current)
 
-      let spikes_g; 
+      let spikes_g;
       if (select === 'state') {
-        svg.selectAll("*").remove(); 
+        svg.selectAll("*").remove();
         d3.selectAll('*.g-time-slider').remove();
 
         const slider = sliderBottom().tickFormat(d3.timeFormat('%m/%d/%y'))
@@ -100,7 +100,7 @@ export default function Map(props) {
           .append('g')
           .attr('class', 'g-time-slider')
           .attr('transform', 'translate(30,30)')
-        
+
         time_slider.call(slider);
 
         const playButton = d3.select(".play-button");
@@ -214,16 +214,16 @@ export default function Map(props) {
 
 
               spikes_g = svg.append('g')
-              .attr('transform', "translate(0,70)")
+              .attr('transform', "translate(0,0)")
               .attr('class', 'spike_map')
 
               spikes_g.selectAll('path')
-              .attr('transform', "translate(0,70)")
+              .attr('transform', "translate(0,0)")
               .data(covid_data.states)
               .join(
                 enter => {
                   const ll = enter.append('path')
-                  .attr('transform', "translate(0,70)")
+                  .attr('transform', "translate(0,0)")
 
                   .attr('fill', 'red')
                   .attr('fill-opacity', 0.6)
@@ -263,7 +263,7 @@ export default function Map(props) {
               let rate = parseFloat(state.covid_rate);
               let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
               let cases = state.cases;
-              
+
               d3.select(".tooltip")
                 .html("<b>"+lastHovered.properties.name+"</b> <br/>"
                 +"SCI: "+lastHovered.properties.social_index
@@ -285,10 +285,10 @@ export default function Map(props) {
 
               //   }
           }
-                
+
           const g = svg.append("g")
           .attr('id', 'states')
-          .attr('transform', "translate(0,70)")
+          .attr('transform', "translate(0,0)")
           .selectAll("path")
           .data(topojson.feature(states_albers, states_albers.objects.states).features)
           .join("path")
@@ -319,7 +319,7 @@ export default function Map(props) {
                   cases = state.cases
               }
               let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
-              
+
               d3.select(".tooltip")
               .style("left", `${d3.pointer(mouseEvent)[0]}px`)
               .style("top", `${d3.pointer(mouseEvent)[1]}px`).attr("data-html", "true")
@@ -334,13 +334,13 @@ export default function Map(props) {
           })
 
           const g_outline = svg.append("path")
-              .attr('transform', "translate(0,70)")
+              .attr('transform', "translate(0,0)")
               .datum(topojson.mesh(states_albers, states_albers.objects.states, (a, b) => a !== b))
               .attr("fill", "none")
               .attr("stroke", "white")
               .attr("stroke-linejoin", "round")
               .attr("d", path)
-          
+
 
 
           const legend = svg.append("g")
@@ -375,11 +375,14 @@ export default function Map(props) {
           .style("text-anchor", "end")
           .text("Highest SCI (2.08)")
           .attr('fill', 'black')
-        } else if (select === 'county') {
 
+          //turn off zoom if in state view
+          svg.on('.zoom', null);
+
+        } else if (select === 'county') {
             const svg = d3.select(svgContainer.current)
-            // d3.selectAll("*.time-slider-state").remove(); 
-            svg.selectAll("*").remove(); 
+            // d3.selectAll("*.time-slider-state").remove();
+            svg.selectAll("*").remove();
             d3.selectAll('*.g-time-slider').remove();
 
             // black counties don't have enough data, add this information to info page
@@ -398,25 +401,25 @@ export default function Map(props) {
                 svg.selectAll('.spike_map').remove();
                 update_spikes(val)
             });
-    
+
             const time_slider = d3.select(".time-slider-svg")
               .attr('width', 1000)
               .attr('height', 70)
               .append('g')
               .attr('class', 'g-time-slider')
               .attr('transform', 'translate(30,30)')
-            
+
             time_slider.call(slider);
-    
+
             const playButton = d3.select(".play-button");
-    
-    
+
+
             playButton.on("click", function() {
               if (d3.select(this).text() == "▶️ Play") {
                 //change text and styling to indicate that the user can pause if desired
                 d3.select(this).text("⏸Pause");
                 d3.select(this).style("background-color", "#FF6961");
-    
+
                 //begin animation
                 timerID = setInterval(animate, 50);
               } else {
@@ -443,8 +446,6 @@ export default function Map(props) {
 
             // covid cases spike map
             function update_spikes(date) {
-              const current_transform = d3.zoomTransform(svg.node()); 
-
               const covid_data = (covid_cases_counties.find(d =>
                   d.date.getMonth() == date.getMonth() &&
                   d.date.getDay() == date.getDay() &&
@@ -521,16 +522,16 @@ export default function Map(props) {
 
 
                   const spikes_g = svg.append('g')
-                  .attr('transform', "translate(0,70)")
+                  .attr('transform', "translate(0,0)")
                   .attr('class', 'spike_map')
 
                   spikes_g.selectAll('path')
-                  .attr('transform', "translate(0,70)")
+                  .attr('transform', "translate(0,0)")
                   .data(covid_data.counties)
                   .join(
                     enter => {
                       const ll = enter.append('path')
-                      .attr('transform', "translate(0,70)")
+                      .attr('transform', "translate(0,0)")
 
                       .attr('fill', 'red')
                       .attr('fill-opacity', 0.6)
@@ -580,13 +581,13 @@ export default function Map(props) {
                     d.date.getYear() == date.getYear()
                     );
 
-                  let id = lastHovered.id 
+                  let id = lastHovered.id
                   var county = covid_date.counties.find(d=>d.fips == id)
                   if (county != undefined) {
                   let rate = parseFloat(county.covid_rate);
                   let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
                   let cases = county.cases;
-                  
+
                   d3.select(".tooltip")
                     .html("<b>"+lastHovered.properties.name+"</b> <br/>"
                     +"SCI: "+lastHovered.properties.social_index
@@ -595,11 +596,16 @@ export default function Map(props) {
                     +"<br/> Covid Cases: "+formatKilo(cases))
                   }
                 }
-                }
-    
+              const current_transform = d3.zoomTransform(g.node());
+              console.log(current_transform);
+              svg.selectAll(".spike_map").attr('transform', current_transform);
+            }
+
+
+
             const g = svg.append("g")
             .attr('id', 'counties')
-            .attr('transform', "translate(0,70)")
+            .attr('transform', "translate(0,0)")
             .selectAll("path")
             .data(topojson.feature(county_albers, county_albers.objects.counties).features)
             .join("path")
@@ -615,16 +621,17 @@ export default function Map(props) {
             .on("mousemove", (mouseEvent, d) => {
                 lastHovered = d;
                 var sname = d.properties.name
-                var id = d.id 
+                var id = d.id
                 var date = slider.value()
-                var covid_date = covid_cases_counties.find(d =>
+
+                var covid_date = (covid_cases_counties.find(d =>
                     d.date.getMonth() == date.getMonth() &&
                     d.date.getDay() == date.getDay() &&
                     d.date.getYear() == date.getYear()
-                    )
+                  ))
 
                 var county = covid_date.counties.find(d=>d.fips == id)
-    
+
                 var rate = 0
                 var cases = 0
                 if(county){
@@ -632,7 +639,7 @@ export default function Map(props) {
                     cases = county.cases
                 }
                 let rate_str = rate < .0001 ? "~0%" : formatPercent(rate);
-                
+
                 d3.select(".tooltip")
                 .style("left", `${d3.pointer(mouseEvent)[0]}px`)
                 .style("top", `${d3.pointer(mouseEvent)[1]}px`).attr("data-html", "true")
@@ -645,7 +652,7 @@ export default function Map(props) {
             .on("mouseout", (mouseEvent, d) => {/* Runs when mouse exits a rect */
                 d3.select(".tooltip").attr("style","opacity:0")
             })
-    
+
             // const g_outline = svg.append("path")
             //     .attr('transform', "translate(0,70)")
             //     .datum(topojson.mesh(county_albers, county_albers.objects.counties, (a, b) => a !== b))
@@ -654,20 +661,17 @@ export default function Map(props) {
             //     .attr("stroke-linejoin", "round")
             //     .attr("d", path)
 
-            // ZOOM IN FUNCTION 
+            // ZOOM IN FUNCTION
             const zoom = d3.zoom()
             .scaleExtent([1,8])
             .on('zoom', zoomed)
 
-            svg.call(zoom)     
+            svg.call(zoom)
 
 
             function zoomed({transform}) {
               g.attr('transform', transform)
-              // not sure how to adjust the position of the spikes when zoomed in 
-              // d3.selectAll('.spike_map')
-              //   .attr('transform', "translate(" + transform.x + ',' + transform.y + ")")
-              //   .attr('scale', transform.k)
+              svg.selectAll(".spike_map").attr('transform', transform)
             }
 
             // function transform_t(t) {
@@ -680,14 +684,14 @@ export default function Map(props) {
             const legend = svg.append("g")
             .attr("id", "legend")
             .attr('transform', "translate(-200,20)");
-    
+
             const legenditem = legend.selectAll(".legenditem")
             .data(d3.range(5))
             .enter()
             .append("g")
             .attr("class", "legenditem")
             .attr("transform", function(d, i) { return "translate(" + i * 31 + ",0)"; });
-    
+
             legenditem.append("rect")
             .attr("x", width - 240)
             .attr("y", -7)
@@ -695,14 +699,14 @@ export default function Map(props) {
             .attr("height", 8)
             .attr("class", "rect")
             .style("fill", function(d, i) { return legend_color[i]; });
-    
+
             legend.append("text")
             .attr("x", width - 243)
             .attr("y", 0)
             .style("text-anchor", "end")
             .text("Lowest SCI (-4.3)")
             .attr('fill', 'black');
-    
+
             legend.append("text")
             .attr("x", width+8)
             .attr("y", 0)
@@ -713,7 +717,7 @@ export default function Map(props) {
 
 
     }, [select]);
-    
+
     return (
         <div className='map'>
             <h1>Social Capital Index (SCI) vs. Covid Cases</h1>
@@ -734,7 +738,7 @@ export default function Map(props) {
                 </FormControl>
             </div>
 
-            <svg className='map' width={svgWidth} height={svgHeight} ref={svgContainer}> 
+            <svg className='map' width={svgWidth} height={svgHeight} ref={svgContainer}>
             </svg>
             <div className="tooltip">My tooltip!</div>
             <div className="time-slider" id="time-slider">
