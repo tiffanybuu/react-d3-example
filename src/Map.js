@@ -52,25 +52,6 @@ export default function Map(props) {
     const color = d3.scaleQuantize().domain(index_range).range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"])
     const color_county = d3.scaleQuantize().domain(index_range_counties).range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"])
 
-    // console.log(covid_cases_counties)
-    // function pauseAnimation(playButton) {
-    //     clearInterval(timerID);
-    //     playButton.text("▶️ Play");
-    //     playButton.style("background-color", "#77DD77");
-    // }
-
-    // function animate(slider, playButton) {
-    //     if (slider.value() >= slider.max()) {
-    //       //pause automatically because we have reached the end of the time series
-    //       pauseAnimation(timerID, playButton);
-    //     } else {
-    //       //increment value of slider by 1 day to render the next day
-    //       var date = slider.value();
-    //       date.setDate(date.getDate() + 1);
-    //       slider.value(date);
-    //     }
-    // }
-
 
     function handleChange(event) {
         const value = event.target.value;
@@ -284,6 +265,9 @@ export default function Map(props) {
               //     spikes_g.attr('transform', transform)
 
               //   }
+              // const current_transform = d3.zoomTransform(g.node());
+              // // console.log(current_transform);
+              // svg.selectAll(".spike_map").attr('transform', current_transform);
           }
 
           const g = svg.append("g")
@@ -341,7 +325,20 @@ export default function Map(props) {
               .attr("stroke-linejoin", "round")
               .attr("d", path)
 
+          // // ZOOM IN FUNCTION
+          // const zoom = d3.zoom()
+          // .scaleExtent([1,8])
+          // .on('zoom', zoomed)
 
+          // svg.call(zoom)
+
+
+          // function zoomed({transform}) {
+          //   console.log(transform)
+          //   g.attr('transform', transform)
+          //   svg.selectAll(".spike_map").attr('transform', transform)
+          //   g_outline.attr('transform', transform)
+          // }
 
           const legend = svg.append("g")
           .attr("id", "legend")
@@ -457,7 +454,7 @@ export default function Map(props) {
               const length = d3.scaleLinear().domain(d3.extent(covid_data.counties, d => d.covid_rate))
                   .range([0,150]);
 
-              function spike(length, width=7) {
+              function spike(length, width=4) {
                   return `M${-width / 2},0L0,${-length}L${width / 2},0`
               }
 
@@ -654,12 +651,19 @@ export default function Map(props) {
             })
 
             // const g_outline = svg.append("path")
-            //     .attr('transform', "translate(0,70)")
+            //     // .attr('transform', "translate(0,70)")
             //     .datum(topojson.mesh(county_albers, county_albers.objects.counties, (a, b) => a !== b))
             //     .attr("fill", "none")
             //     .attr("stroke", "white")
             //     .attr("stroke-linejoin", "round")
             //     .attr("d", path)
+            const g_outline = svg.append("path")
+            .attr('transform', "translate(0,0)")
+            .datum(topojson.mesh(states_albers, states_albers.objects.states, (a, b) => a !== b))
+            .attr("fill", "none")
+            .attr("stroke", "white")
+            .attr("stroke-linejoin", "round")
+            .attr("d", path)
 
             // ZOOM IN FUNCTION
             const zoom = d3.zoom()
@@ -672,6 +676,7 @@ export default function Map(props) {
             function zoomed({transform}) {
               g.attr('transform', transform)
               svg.selectAll(".spike_map").attr('transform', transform)
+              g_outline.attr('transform', transform)
             }
 
             // function transform_t(t) {
