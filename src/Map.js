@@ -44,33 +44,121 @@ export default function Map(props) {
   const [covid_cases_counties] = useState(data.covid_cases_counties);
   const [social_capital_counties] = useState(data.social_capital_counties);
 
-  const [index_range] = useState(
+  const [index_range, setStateIndex] = useState(
     d3.extent(social_capital_states.map((d) => d.State_Level_Index))
   );
-  const [index_range_counties] = useState(
+  const [index_range_counties, setCountyIndex] = useState(
     d3.extent(social_capital_counties.map((d) => d.County_Level_Index))
   );
   // state control for map type
   const [select, setSelect] = useState("state");
   // state control for background factor type
   const [factor, setFactor] = useState("sci");
-  const color = d3
+  let color = d3
     .scaleQuantize()
     .domain(index_range)
     .range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"]);
-  const color_county = d3
+  let color_county = d3
     .scaleQuantize()
     .domain(index_range_counties)
     .range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"]);
 
-  function handleMapChange(event) {
+  function handleMapTypeChange(event) {
     const value = event.target.value;
     setSelect(value);
   }
 
-  function handleFactorChange(event) {
+  function handleStateFactorChange(event) {
     const value = event.target.value;
+    let stateRange, countyRange;
+    let states_without_dc = social_capital_states.filter(
+      (d) => d["State Abbreviation"] != "DC"
+    );
+    switch (value) {
+      case "sci":
+        stateRange = d3.extent(
+          social_capital_states.map((d) => d.State_Level_Index)
+        );
+        countyRange = d3.extent(
+          social_capital_counties.map((d) => d.County_Level_Index)
+        );
+        break;
+      case "fam":
+        stateRange = d3.extent(states_without_dc.map((d) => d.Family_Unity));
+        countyRange = d3.extent(
+          social_capital_counties.map((d) => d.Family_Unity)
+        );
+        break;
+      case "com":
+        stateRange = d3.extent(
+          states_without_dc.map((d) => d.Community_Health)
+        );
+        countyRange = d3.extent(
+          social_capital_counties.map((d) => d.Community_Health)
+        );
+        break;
+      case "ins":
+        stateRange = d3.extent(
+          states_without_dc.map((d) => d.Institutional_Health)
+        );
+        countyRange = d3.extent(
+          social_capital_counties.map((d) => d.Institutional_Health)
+        );
+        break;
+      case "col":
+        stateRange = d3.extent(
+          states_without_dc.map((d) => d.Collective_Efficacy)
+        );
+        countyRange = d3.extent(
+          social_capital_counties.map((d) => d.Collective_Efficacy)
+        );
+        break;
+      default:
+        stateRange = d3.extent(
+          states_without_dc.map((d) => d.State_Level_Index)
+        );
+        countyRange = d3.extent(
+          social_capital_counties.map((d) => d.State_Level_Index)
+        );
+        break;
+    }
+    setStateIndex(stateRange);
+    setCountyIndex(countyRange);
     setFactor(value);
+  }
+
+  function selectFactor(d) {
+    switch (factor) {
+      case "sci":
+        return d.properties.social_index;
+      case "fam":
+        return d.properties.family_unity;
+      case "com":
+        return d.properties.community_health;
+      case "ins":
+        return d.properties.institutional_health;
+      case "col":
+        return d.properties.collective_efficacy;
+      default:
+        return d.properties.social_index;
+    }
+  }
+
+  function factorText() {
+    switch (factor) {
+      case "sci":
+        return "SCI";
+      case "fam":
+        return "FUI";
+      case "com":
+        return "CHI";
+      case "ins":
+        return "IHI";
+      case "col":
+        return "CEI";
+      default:
+        return "N/A";
+    }
   }
 
   // like componentDidMount, or whenever data passed in change
@@ -291,7 +379,7 @@ export default function Map(props) {
               "<b>" +
                 lastHovered.properties.name +
                 "</b> <br/>" +
-                "SCI: " +
+                `${factorText()}: ` +
                 lastHovered.properties.social_index +
                 "<br/> Ranks <b>#" +
                 (52 -
@@ -326,6 +414,11 @@ export default function Map(props) {
         // svg.selectAll(".spike_map").attr('transform', current_transform);
       }
 
+      color = d3
+        .scaleQuantize()
+        .domain(index_range)
+        .range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"]);
+
       const g = svg
         .append("g")
         .attr("id", "states")
@@ -345,6 +438,7 @@ export default function Map(props) {
           d3.select(".tooltip").text(d).attr("style", "opacity:20");
         })
         .on("mousemove", (mouseEvent, d) => {
+          // console.log(d.properties);
           lastHovered = d;
           var sname = d.properties.name;
           var date = slider.value();
@@ -372,8 +466,8 @@ export default function Map(props) {
               "<b>" +
                 d.properties.name +
                 "</b> <br/>" +
-                "SCI: " +
-                d.properties.social_index +
+                `${factorText()}: ` +
+                selectFactor(d) +
                 "<br/> Ranks <b>#" +
                 (52 -
                   parseFloat(
@@ -453,7 +547,7 @@ export default function Map(props) {
         .attr("x", width - 243)
         .attr("y", 0)
         .style("text-anchor", "end")
-        .text("Lowest SCI (-2.15)")
+        .text(`Lowest ${factorText()} (${index_range[0]})`)
         .attr("fill", "black");
 
       legend
@@ -461,13 +555,13 @@ export default function Map(props) {
         .attr("x", width + 8)
         .attr("y", 0)
         .style("text-anchor", "end")
-        .text("Highest SCI (2.08)")
+        .text(`Highest ${factorText()} (${index_range[1]})`)
         .attr("fill", "black");
 
       //turn off zoom if in state view
       svg.on(".zoom", null);
-    
-    /// COUNTY VIEW ///
+
+      /// COUNTY VIEW ///
     } else if (select === "county") {
       const svg = d3.select(svgContainer.current);
       // d3.selectAll("*.time-slider-state").remove();
@@ -724,6 +818,11 @@ export default function Map(props) {
         svg.selectAll(".spike_map").attr("transform", current_transform);
       }
 
+      color_county = d3
+        .scaleQuantize()
+        .domain(index_range_counties)
+        .range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"]);
+
       const g = svg
         .append("g")
         .attr("id", "counties")
@@ -734,7 +833,7 @@ export default function Map(props) {
             .features
         )
         .join("path")
-        .attr("fill", (d) => color(d.properties.social_index))
+        .attr("fill", (d) => color_county(d.properties.social_index))
         .attr("d", path)
         .on("mouseover", (mouseEvent, d) => {
           lastHovered = d;
@@ -774,8 +873,8 @@ export default function Map(props) {
               "<b>" +
                 d.properties.name +
                 "</b> <br/>" +
-                "SCI: " +
-                d.properties.social_index +
+                `${factorText()}: ` +
+                selectFactor(d) +
                 "<br/> Ranks <b>#" +
                 (2992 -
                   parseFloat(
@@ -865,7 +964,7 @@ export default function Map(props) {
         .attr("x", width - 243)
         .attr("y", 0)
         .style("text-anchor", "end")
-        .text("Lowest SCI (-4.3)")
+        .text(`Lowest ${factorText()} (${index_range_counties[0]})`)
         .attr("fill", "black");
 
       legend
@@ -873,7 +972,7 @@ export default function Map(props) {
         .attr("x", width + 8)
         .attr("y", 0)
         .style("text-anchor", "end")
-        .text("Highest SCI (2.9)")
+        .text(`Highest ${factorText()} (${index_range_counties[1]})`)
         .attr("fill", "black");
     }
   }, [select]);
@@ -886,7 +985,7 @@ export default function Map(props) {
           <Select
             native
             label="typeOfMap"
-            onChange={handleMapChange}
+            onChange={handleMapTypeChange}
             inputProps={{
               name: "typeOfMap",
               id: "outlined-age-native-simple",
@@ -900,7 +999,7 @@ export default function Map(props) {
           <Select
             native
             label="bgFactor"
-            onChange={handleFactorChange}
+            onChange={handleStateFactorChange}
             inputProps={{
               name: "bgFactor",
               id: "outlined-age-native-simple",

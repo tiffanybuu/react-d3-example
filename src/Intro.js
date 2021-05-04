@@ -48,11 +48,11 @@ class Intro extends Component {
             for (var i = 0; i < data.length; i++) {
 
               const dataState = data[i].State;
-              const sci = +data[i].State_Level_Index;
-              const fu = +data[i].Family_Unity;
-              const ih = +data[i].Institutional_Health;
-              const ce = +data[i].Collective_Efficacy;
-              const ch = +data[i].Community_Health;
+              const sci = data[i].State_Level_Index;
+              const fu = data[i].Family_Unity;
+              const ih = data[i].Institutional_Health;
+              const ce = data[i].Collective_Efficacy;
+              const ch = data[i].Community_Health;
 
               const dat = feat.find(d => d.properties.name == dataState);
               dat.properties.social_index = sci;
@@ -105,11 +105,19 @@ class Intro extends Component {
                 for (var i = 0; i < data.length; i++) {
 
                     const dataFips = data[i].FIPS_Code;
-                    const dataValue = parseFloat(data[i].County_Level_Index);
+                    
+                    const sci = data[i].County_Level_Index;
+                    const fu = data[i].Family_Unity;
+                    const ih = data[i].Institutional_Health;
+                    const ce = data[i].Collective_Efficacy;
+                    const ch = data[i].Community_Health;
 
                     const dat = feat.find(d => d.id == dataFips);
-                    dat.properties.social_index = dataValue;
-
+                    dat.properties.social_index = sci;
+                    dat.properties.family_unity = fu;
+                    dat.properties.institutional_health = ih;
+                    dat.properties.collective_efficacy = ce;
+                    dat.properties.community_health = ch;
                 }
                 currentC.setState({county_albers: counties})
 
