@@ -975,7 +975,7 @@ export default function Map(props) {
         .text(`Highest ${factorText()} (${index_range_counties[1]})`)
         .attr("fill", "black");
     }
-  }, [select]);
+  }, [select, factor]);
 
   return (
     <div className="map">
