@@ -149,15 +149,15 @@ class Intro extends Component {
         return (
             <div className="Intro">
                 <h1>Social Capital Index (SCI) and Covid Maps</h1>
-                <p> Social capital is defined as the “social assets” a person has - their relationships with other people and groups (family, friends, employers, the community, etc).
+                <p> Social capital is defined as the “social assets” a person has — their relationships with other people and groups (family, friends, employers, the community, etc).
                     Having more social capital means you are more likely to find resources you might need through the connections you have.
                     Research has shown that social capital inequality is correlated with public health. A lack of social capital within a population can indicate increased rates of mortality, obesity, diabetes, and sexually-transmitted disease.
-                    There has been some research that found that counties/states with higher social capital indices generally have lower rates fo COVID cases (https://www.medrxiv.org/content/10.1101/2020.04.23.20077321v1).
-                    Our project aims to visualize the relationship between Social Capital and Covid Cases across the United States.
+                    There has been some <a href="https://www.medrxiv.org/content/10.1101/2020.04.23.20077321v1">research</a> that found that counties/states with higher social capital indices generally have lower rates of COVID cases.
+                    Our project aims to visualize the relationship between Social Capital and its subfactors and Covid Cases across the United States.
                     <br></br>
                     Note: Counties shown in black are not ranked due to missing data.
                     <br></br>
-                    Datasets used: [add]
+                    Datasets used: <a href="https://www.lee.senate.gov/public/index.cfm/scp-index">Social Capital Project</a>
                 </p>
                 <Link to= {{
                     pathname: "/map",
