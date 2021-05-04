@@ -469,6 +469,7 @@ export default function Map(props) {
     
     /// COUNTY VIEW ///
     } else if (select === "county") {
+      var indicator = '';
       const svg = d3.select(svgContainer.current);
       // d3.selectAll("*.time-slider-state").remove();
       svg.selectAll("*").remove();
@@ -682,7 +683,8 @@ export default function Map(props) {
         //     return "translate(" + t.apply(d) + ")";
         //   };
         // }
-
+        
+        
         if (lastHovered != undefined) {
           let covid_date = covid_cases_counties.find(
             (d) =>
@@ -692,8 +694,11 @@ export default function Map(props) {
           );
 
           let id = lastHovered.id;
+          
+          
           var county = covid_date.counties.find((d) => d.fips == id);
           if (county != undefined) {
+            
             let rate = parseFloat(county.covid_rate);
             let rate_str = rate < 0.0001 ? "~0%" : formatPercent(rate);
             let cases = county.cases;
@@ -723,7 +728,31 @@ export default function Map(props) {
         console.log(current_transform);
         svg.selectAll(".spike_map").attr("transform", current_transform);
       }
-
+      function factor_type(factor_selection,d){
+        // sci,fam,com,ins,col
+        if(factor_selection=='sci')
+        {
+          var indicator = d.properties.social_index
+        }
+        else if(factor_selection=='fam')
+        {
+          var indicator = d.properties.family_unity
+        }
+        else if(factor_selection=='com')
+        {
+          var indicator = d.properties.community_health
+        }
+        else if(factor_selection=='ins')
+        {
+          var indicator = d.properties.institutional_health
+        }
+        else if(factor_selection=='col')
+        {
+          var indicator = d.properties.collective_efficacy
+        }
+        return indicator
+      }
+      
       const g = svg
         .append("g")
         .attr("id", "counties")
@@ -734,7 +763,7 @@ export default function Map(props) {
             .features
         )
         .join("path")
-        .attr("fill", (d) => color(d.properties.social_index))
+        .attr("fill", (d) => color_county(factor_type(factor,d)))
         .attr("d", path)
         .on("mouseover", (mouseEvent, d) => {
           lastHovered = d;
@@ -742,6 +771,7 @@ export default function Map(props) {
           // Runs when the mouse enters a rect.  d is the corresponding data point.
           // Show the tooltip and adjust its text to say the temperature.
           d3.select(".tooltip").text(d).attr("style", "opacity:20");
+          console.log(d.properties)
         })
         .on("mousemove", (mouseEvent, d) => {
           lastHovered = d;
@@ -765,7 +795,7 @@ export default function Map(props) {
             cases = county.cases;
           }
           let rate_str = rate < 0.0001 ? "~0%" : formatPercent(rate);
-
+          
           d3.select(".tooltip")
             .style("left", `${d3.pointer(mouseEvent)[0]}px`)
             .style("top", `${d3.pointer(mouseEvent)[1] - 40}px`)
@@ -774,8 +804,8 @@ export default function Map(props) {
               "<b>" +
                 d.properties.name +
                 "</b> <br/>" +
-                "SCI: " +
-                d.properties.social_index +
+                "Value: " +
+                factor_type(factor,d) +
                 "<br/> Ranks <b>#" +
                 (2992 -
                   parseFloat(
@@ -906,7 +936,7 @@ export default function Map(props) {
               id: "outlined-age-native-simple",
             }}
           >
-            <option value="sci">Social Capital</option>
+            <option value="sci">Social Capital</option> 
             <option value="fam">Family Unity</option>
             <option value="com">Community Health</option>
             <option value="ins">Institutional Health</option>
