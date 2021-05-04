@@ -50,7 +50,10 @@ export default function Map(props) {
   const [index_range_counties] = useState(
     d3.extent(social_capital_counties.map((d) => d.County_Level_Index))
   );
+  // state control for map type
   const [select, setSelect] = useState("state");
+  // state control for background factor type
+  const [factor, setFactor] = useState("sci");
   const color = d3
     .scaleQuantize()
     .domain(index_range)
@@ -60,9 +63,14 @@ export default function Map(props) {
     .domain(index_range_counties)
     .range(["#042698", "#3651ac", "#687cc1", "#9aa8d5", "#ccd3ea"]);
 
-  function handleChange(event) {
+  function handleMapChange(event) {
     const value = event.target.value;
     setSelect(value);
+  }
+
+  function handleFactorChange(event) {
+    const value = event.target.value;
+    setFactor(value);
   }
 
   // like componentDidMount, or whenever data passed in change
@@ -263,6 +271,8 @@ export default function Map(props) {
                 .remove();
             }
           );
+
+        // update tooltip data for the first time if it hasn't been done before
         if (lastHovered != undefined) {
           let covid_date = covid_cases_states.find(
             (d) =>
@@ -876,7 +886,7 @@ export default function Map(props) {
           <Select
             native
             label="typeOfMap"
-            onChange={handleChange}
+            onChange={handleMapChange}
             inputProps={{
               name: "typeOfMap",
               id: "outlined-age-native-simple",
@@ -890,13 +900,13 @@ export default function Map(props) {
           <Select
             native
             label="bgFactor"
-            onChange={handleChange}
+            onChange={handleFactorChange}
             inputProps={{
               name: "bgFactor",
               id: "outlined-age-native-simple",
             }}
           >
-            <option value="sci">Social Capital Index</option>
+            <option value="sci">Social Capital</option>
             <option value="fam">Family Unity</option>
             <option value="com">Community Health</option>
             <option value="ins">Institutional Health</option>
