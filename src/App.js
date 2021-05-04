@@ -22,53 +22,53 @@ class App extends Component {
 
 
   componentDidMount = () => {
-    let currentC = this;
+    // let currentC = this;
 
-    d3.csv("social-capital-states.csv").then(function(data) {
-      data.forEach(function (d, i) {
-        // console.log(i)
-        d.State_Level_Index = parseFloat(d.State_Level_Index);
-        d.rank_percentage = i/50.00;
-        // rank out of 50 states plus DC = 51
-        d.rank = i+1;
-      })
+    // d3.csv("social-capital-states.csv").then(function(data) {
+    //   data.forEach(function (d, i) {
+    //     // console.log(i)
+    //     d.State_Level_Index = parseFloat(d.State_Level_Index);
+    //     d.rank_percentage = i/50.00;
+    //     // rank out of 50 states plus DC = 51
+    //     d.rank = i+1;
+    //   })
 
-      currentC.setState({social_capital_states: data})
+    //   currentC.setState({social_capital_states: data})
 
-      d3.json("states-albers-10m.json").then(function(us) {
-        var feat = topojson.feature(us, us.objects.states).features;
+    //   d3.json("states-albers-10m.json").then(function(us) {
+    //     var feat = topojson.feature(us, us.objects.states).features;
 
-        // https://bl.ocks.org/wboykinm/dbbe50d1023f90d4e241712395c27fb3
-        for (var i = 0; i < data.length; i++) {
+    //     // https://bl.ocks.org/wboykinm/dbbe50d1023f90d4e241712395c27fb3
+    //     for (var i = 0; i < data.length; i++) {
 
-          const dataState = data[i].State;
-          const dataValue = parseFloat(data[i].State_Level_Index);
+    //       const dataState = data[i].State;
+    //       const dataValue = parseFloat(data[i].State_Level_Index);
 
-          const dat = feat.find(d => d.properties.name == dataState);
-          dat.properties.social_index = dataValue;
+    //       const dat = feat.find(d => d.properties.name == dataState);
+    //       dat.properties.social_index = dataValue;
 
-        }
-        currentC.setState({states_albers: us})
+    //     }
+    //     currentC.setState({states_albers: us})
         
-        d3.json("covid_cases_states.json").then(function(cov_data) {
+    //     d3.json("covid_cases_states.json").then(function(cov_data) {
 
-          cov_data.forEach(function(d,i) {
-            d.date = parseTime(d.date);
-            d.states = d.states;
+    //       cov_data.forEach(function(d,i) {
+    //         d.date = parseTime(d.date);
+    //         d.states = d.states;
 
-            for (var i = 0; i < d.states.length; i++) {
-              const dataState = d.states[i].state;
-              const dat = feat.find(d => d.properties.name == dataState);
-              d.states[i].centroid = path.centroid(dat)
+    //         for (var i = 0; i < d.states.length; i++) {
+    //           const dataState = d.states[i].state;
+    //           const dat = feat.find(d => d.properties.name == dataState);
+    //           d.states[i].centroid = path.centroid(dat)
 
-            }
-          })
-          currentC.setState({covid_cases_states: cov_data})
+    //         }
+    //       })
+    //       currentC.setState({covid_cases_states: cov_data})
 
-        });
+    //     });
     
-      })
-    })
+    //   })
+    // })
   }
 
   render() {

@@ -28,10 +28,15 @@ class Intro extends Component {
         d3.csv("social-capital-states.csv").then(function(data) {
           data.forEach(function (d, i) {
             // console.log(i)
-            d.State_Level_Index = parseFloat(d.State_Level_Index);
+            d.State_Level_Index = +d.State_Level_Index;
             d.rank_percentage = i/50.00;
             // rank out of 50 states plus DC = 51
             d.rank = i+1;
+            
+            d.Family_Unity = parseFloat(d.Family_Unity);
+            d.Community_Health = +d.Community_Health;
+            d.Institutional_Health = +d.Institutional_Health;
+            d.Collective_Efficacy = +d.Collective_Efficacy;
           })
 
           currentC.setState({social_capital_states: data})
@@ -78,6 +83,11 @@ class Intro extends Component {
                 d.rank_percentage = i/2992.00;
                 // rank out of 2992 counties with data
                 d.rank = i+1;
+
+                d.Family_Unity = +d.Family_Unity;
+                d.Community_Health = +d.Community_Health;
+                d.Institutional_Health = +d.Institutional_Health;
+                d.Collective_Efficacy = +d.Collective_Efficacy;
             })
 
             currentC.setState({social_capital_counties: data})
